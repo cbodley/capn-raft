@@ -9,4 +9,15 @@
  * Foundation.  See file COPYING.
  */
 
-int main(int argc, char *argv[]) { return 0; }
+#include "config.h"
+
+using namespace raft;
+using namespace server;
+
+int main(int argc, const char **argv) {
+  Configuration config;
+  if (!parse_config(argc, argv, config))
+    return 1;
+
+  return 0;
+}
