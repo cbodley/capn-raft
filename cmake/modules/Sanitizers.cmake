@@ -1,0 +1,24 @@
+set(WITH_SANITIZERS "" CACHE STRING
+	"List of sanitizers for -fsanitize, with entries separated by comma.")
+
+if(WITH_SANITIZERS)
+	include(CheckCCompilerFlag)
+	set(SANITIZER_FLAGS "-fsanitize=${WITH_SANITIZERS}")
+	set(CMAKE_REQUIRED_FLAGS "-Werror ${SANITIZER_FLAGS}")
+	check_c_compiler_flag(${SANITIZER_FLAGS} HAVE_SANITIZER_FLAGS)
+	unset(CMAKE_REQUIRED_FLAGS)
+
+	if(NOT HAVE_SANITIZER_FLAGS)
+		message(FATAL_ERROR "WITH_SANITIZERS: ${SANITIZER_FLAGS} not supported by the compiler.")
+	endif()
+
+	message(STATUS "WITH_SANITIZERS: adding flag ${SANITIZER_FLAGS}")
+	set(CMAKE_C_FLAGS
+		"${CMAKE_C_FLAGS} ${SANITIZER_FLAGS}")
+	set(CMAKE_CXX_FLAGS
+		"${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS
+		"${CMAKE_EXE_LINKER_FLAGS} ${SANITIZER_FLAGS}")
+	set(CMAKE_SHARED_LINKER_FLAGS
+		"${CMAKE_SHARED_LINKER_FLAGS} ${SANITIZER_FLAGS}")
+endif(WITH_SANITIZERS)
