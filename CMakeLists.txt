@@ -18,4 +18,5 @@ install(FILES include/raft.h DESTINATION include/raft)
 add_subdirectory(src)
 
 # tests
+include_directories(src)
 add_subdirectory(test)
