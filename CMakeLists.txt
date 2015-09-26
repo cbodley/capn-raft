@@ -9,6 +9,8 @@ include(Sanitizers)
 include(UseCxxStandard)
 use_cxx_standard(REQUIRED VERSIONS 14 11)
 
+
+find_package(CapnProto REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options)
 
 
