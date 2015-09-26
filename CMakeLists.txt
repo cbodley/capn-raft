@@ -11,3 +11,6 @@ use_cxx_standard(REQUIRED VERSIONS 14 11)
 
 # raft source
 add_subdirectory(src)
+
+# tests
+add_subdirectory(test)
