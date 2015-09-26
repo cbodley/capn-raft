@@ -9,7 +9,12 @@ include(Sanitizers)
 include(UseCxxStandard)
 use_cxx_standard(REQUIRED VERSIONS 14 11)
 
+find_package(Boost REQUIRED COMPONENTS program_options)
+
+
 # raft source
+include_directories(include)
+install(FILES include/raft.h DESTINATION include/raft)
 add_subdirectory(src)
 
 # tests
