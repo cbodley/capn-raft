@@ -14,6 +14,9 @@ find_package(CapnProto REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options)
 
 
+# protocol definitions
+add_subdirectory(proto)
+
 # raft source
 include_directories(include)
 install(FILES include/raft.h DESTINATION include/raft)
