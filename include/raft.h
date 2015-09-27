@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <map>
+#include <memory>
 #include <string>
 
 // "In Search of an Understandable Consensus Algorithm"
@@ -38,6 +39,25 @@ struct Configuration {
   duration_ms election_timeout_max;
   duration_ms heartbeat_interval;
   member_addr_map member_addrs;
+};
+
+class Raft {
+public:
+  Raft(std::nullptr_t) noexcept;
+  Raft(const Configuration &config);
+  ~Raft() noexcept;
+
+  void run();
+
+  Raft(Raft &&) noexcept = default;
+  Raft &operator=(Raft &&) noexcept = default;
+
+  Raft(const Raft &) = delete;
+  Raft &operator=(const Raft &) = delete;
+
+private:
+  class Impl;
+  std::unique_ptr<Impl> impl;
 };
 
 } // namespace server

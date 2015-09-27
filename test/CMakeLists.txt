@@ -14,3 +14,8 @@ add_executable(test_config EXCLUDE_FROM_ALL test_config.cc test_config.conf)
 target_link_libraries(test_config raft_config ${TEST_LIBRARIES})
 add_test(Config test_config)
 add_dependencies(check test_config)
+
+add_executable(test_election EXCLUDE_FROM_ALL test_election.cc)
+target_link_libraries(test_election raft ${TEST_LIBRARIES})
+add_test(Election test_election)
+add_dependencies(check test_election)
