@@ -19,15 +19,17 @@
 namespace raft {
 namespace server {
 
+using member_set = std::set<member_t>;
+
 class Cluster {
 public:
   Cluster(const member_addr_map &member_addrs = {})
       : member_addrs(member_addrs) {}
 
-  virtual bool is_majority(const std::set<member_t> &members) const;
-  virtual void get_members(std::set<member_t> &members) const;
+  virtual bool is_majority(const member_set &members) const;
+  virtual member_set get_members() const;
   virtual addr_t get_address(member_t member) const;
-  virtual void get_addresses(member_addr_map &addrs) const;
+  virtual member_addr_map get_addresses() const;
 
 private:
   mutable std::mutex mutex;

@@ -151,9 +151,6 @@ void Server::start_election() {
   add_vote(config.member_id);
 
   // broadcast a vote request
-  std::map<member_t, addr_t> addrs;
-  cluster.get_addresses(addrs);
-
   const struct {
     term_t term;
     member_t candidate;
@@ -161,7 +158,7 @@ void Server::start_election() {
     term_t log_term;
   } vote = {term, config.member_id, get_last_log_index(), get_last_log_term()};
 
-  for (auto &member : addrs) {
+  for (auto &member : cluster.get_addresses()) {
     const auto member_id = member.first;
     if (member_id == config.member_id)
       continue;

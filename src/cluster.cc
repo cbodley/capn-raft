@@ -23,10 +23,12 @@ bool Cluster::is_majority(const std::set<member_t> &members) const {
   return false;
 }
 
-void Cluster::get_members(std::set<member_t> &members) const {
+member_set Cluster::get_members() const {
   std::lock_guard<std::mutex> lock(mutex);
+  member_set members;
   for (auto &m : member_addrs)
     members.insert(m.first);
+  return members;
 }
 
 addr_t Cluster::get_address(member_t member) const {
@@ -37,7 +39,7 @@ addr_t Cluster::get_address(member_t member) const {
   return addr_t();
 }
 
-void Cluster::get_addresses(std::map<member_t, addr_t> &addrs) const {
+member_addr_map Cluster::get_addresses() const {
   std::lock_guard<std::mutex> lock(mutex);
-  addrs = member_addrs;
+  return member_addrs;
 }
