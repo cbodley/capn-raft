@@ -7,6 +7,7 @@ set_target_properties(raft_client PROPERTIES OUTPUT_NAME raft)
 install(TARGETS raft_client DESTINATION bin)
 
 set(raft_src
+	append.cc
 	cluster.cc
 	election.cc
 	network.cc

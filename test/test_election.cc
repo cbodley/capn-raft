@@ -54,6 +54,8 @@ private:
 auto async = kj::setupAsyncIo();
 Network network(async.provider->getNetwork());
 
+capnp::MallocMessageBuilder message;
+LogFactory log_factory(message.getOrphanage());
 } // anonymous namespace
 
 // test member state transitions
@@ -175,10 +177,7 @@ TEST(Election, GrantMatchingLog) {
   Cluster cluster;
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
-  capnp::MallocMessageBuilder message;
-  auto entry = message.getOrphanage().newOrphan<proto::log::Entry>();
-  entry.get().setTerm(state.current_term);
-  state.log.emplace_back(std::move(entry));
+  state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
 
   bool granted = server.request_vote(state.current_term, 0, 1, 0);
   ASSERT_TRUE(granted);
@@ -214,10 +213,7 @@ TEST(Election, DenyIfLowerLogIndex) {
   Cluster cluster;
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
-  capnp::MallocMessageBuilder message;
-  auto entry = message.getOrphanage().newOrphan<proto::log::Entry>();
-  entry.get().setTerm(state.current_term);
-  state.log.emplace_back(std::move(entry));
+  state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
 
   bool granted = server.request_vote(state.current_term, 0, 0, 0);
   ASSERT_FALSE(granted);
@@ -228,10 +224,7 @@ TEST(Election, DenyIfDifferentLogTerm) {
   Cluster cluster;
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
-  capnp::MallocMessageBuilder message;
-  auto entry = message.getOrphanage().newOrphan<proto::log::Entry>();
-  entry.get().setTerm(state.current_term);
-  state.log.emplace_back(std::move(entry));
+  state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
 
   bool granted = server.request_vote(state.current_term, 0, 1, 1);
   ASSERT_FALSE(granted);

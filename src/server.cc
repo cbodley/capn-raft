@@ -41,13 +41,16 @@ const addr_t &get_bind_addr(const Configuration &config) {
 
 Server::Server(const Configuration &config, State &state, Cluster &cluster,
                Network &network, std::mt19937 &rng,
-               kj::AsyncIoProvider &async) noexcept : config(config),
-                                                      state(state),
-                                                      cluster(cluster),
-                                                      network(network),
-                                                      rng(rng),
-                                                      async(async),
-                                                      election_timer(nullptr) {}
+               kj::AsyncIoProvider &async) noexcept
+    : config(config),
+      state(state),
+      cluster(cluster),
+      network(network),
+      rng(rng),
+      async(async),
+      log_factory(message.getOrphanage()),
+      election_timer(nullptr),
+      heartbeat_timer(nullptr) {}
 
 bool Server::update_term(term_t term) {
   if (state.current_term >= term)
@@ -72,7 +75,7 @@ uint32_t Server::get_last_log_index() const { return state.log.size(); }
 term_t Server::get_last_log_term() const {
   if (state.log.empty())
     return 0;
-  return state.log.back().get().getTerm();
+  return state.log.back()->get().getTerm();
 }
 
 class RaftServerAdapter : public proto::Raft::Server {

@@ -74,12 +74,11 @@ bool Server::request_vote(term_t term, member_t candidate, uint32_t log_index,
     // already voted for someone else
     return false;
   }
-  if (log_index < state.log.size()) {
+  if (log_index < get_last_log_index()) {
     // my log is more recent
     return false;
   }
-  if (log_index > 0 && log_index == state.log.size() &&
-      log_term != state.log.back().get().getTerm()) {
+  if (log_term != get_last_log_term()) {
     // last log term doesn't match
     return false;
   }
@@ -126,8 +125,8 @@ kj::Duration get_election_timeout(const Configuration &config,
 } // anonymous namespace
 
 kj::Promise<void> Server::election_timeout() {
-  KJ_ASSERT(state.member_state != MemberState::Leader,
-            "election timeout during leader state");
+  KJ_REQUIRE(state.member_state != MemberState::Leader,
+             "election timeout during leader state");
 
   start_election();
   if (state.member_state == MemberState::Leader)

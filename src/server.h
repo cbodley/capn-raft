@@ -17,6 +17,7 @@
 
 #include <raft.h>
 
+#include "log.h"
 #include "raft.capnp.h"
 
 namespace kj {
@@ -31,6 +32,7 @@ using term_t = uint32_t;
 class Cluster;
 class Network;
 class State;
+struct Follower;
 
 class Server {
 public:
@@ -39,9 +41,7 @@ public:
          kj::AsyncIoProvider &async) noexcept;
 
   kj::Promise<void> append(proto::append::Args::Reader args,
-                           proto::append::Res::Builder res) {
-    return kj::READY_NOW;
-  }
+                           proto::append::Res::Builder res);
   kj::Promise<void> command(proto::command::Args::Reader args,
                             proto::command::Res::Builder res) {
     return kj::READY_NOW;
@@ -64,15 +64,23 @@ protected:
   bool request_vote(term_t term, member_t candidate, uint32_t log_index,
                     term_t log_term);
 
-  kj::Promise<void> vote_reply(member_t, term_t term, bool granted);
+  kj::Promise<void> vote_reply(member_t from, term_t term, bool granted);
   void add_vote(member_t member);
 
-  void start_leader() {}
-  void stop_leader() {}
+  void start_leader();
+  void stop_leader();
+  kj::Promise<void> heartbeat_timeout();
+
+  kj::Promise<void> append_reply(member_t from, proto::append::Res::Reader res);
+  void send_append(member_t to, Follower &follower);
+  void send_snapshot(member_t to, Follower &follower) {}
 
   bool update_term(term_t term);
 
   kj::Promise<void> store_raft_state();
+
+  void follower_matched(member_t id, uint32_t log_index) {}
+  kj::Promise<void> commit_through(uint32_t log_index) { return kj::READY_NOW; }
 
   State &get_state() { return state; }
   const State &get_state() const { return state; }
@@ -88,10 +96,13 @@ private:
   std::mt19937 &rng;
   kj::AsyncIoProvider &async;
 
-  capnp::MallocMessageBuilder message; //< allocator for log::Entry orphans
+  capnp::MallocMessageBuilder message; //< allocator for log factory
+  LogFactory log_factory;              //< factory for log entries
 
   kj::Promise<void> election_timer;
   std::map<member_t, kj::Promise<void>> vote_replies;
+
+  kj::Promise<void> heartbeat_timer;
 };
 
 } // namespace server

@@ -11,20 +11,18 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <set>
 #include <vector>
 
+#include <kj/async.h>
+
 #include <raft.h>
 
-#include "log.capnp.h"
+#include "log.h"
 
 namespace raft {
 namespace server {
-
-using term_t = uint32_t;
-using log_index_t = uint32_t;
-
-using log_entry_t = capnp::Orphan<proto::log::Entry>;
 
 enum class MemberState {
   Follower,
@@ -36,6 +34,7 @@ struct Follower {
   log_index_t next;
   log_index_t match;
   uint64_t snap_offset;
+  kj::Promise<void> reply = nullptr; /// pending append or snapshot reply
 };
 
 struct State {
@@ -43,7 +42,10 @@ struct State {
   term_t current_term = 0;
   bool voted = false;
   member_t voted_for;
-  std::vector<log_entry_t> log;
+  log_index_t snap_index = 0;
+  term_t snap_term = 0;
+  uint64_t snap_size = 0;
+  std::vector<log_entry_ptr> log;
 
   // volatile state
   MemberState member_state = MemberState::Follower;
