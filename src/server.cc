@@ -11,6 +11,7 @@
 
 #include <iostream>
 
+#include <kj/async-io.h>
 #include <capnp/ez-rpc.h>
 
 #include "cluster.h"
@@ -52,6 +53,7 @@ bool Server::update_term(term_t term) {
   if (state.current_term >= term)
     return false;
 
+  std::cout << "updated term to " << term << std::endl;
   state.current_term = term;
   state.voted = false;
 
@@ -65,6 +67,13 @@ bool Server::update_term(term_t term) {
 
 kj::Promise<void> Server::store_raft_state() { return kj::READY_NOW; }
 
+uint32_t Server::get_last_log_index() const { return state.log.size(); }
+term_t Server::get_last_log_term() const {
+  if (state.log.empty())
+    return 0;
+  return state.log.back().getTerm();
+}
+
 class RaftServerAdapter : public proto::Raft::Server {
 public:
   RaftServerAdapter(server::Server &server) : server(server) {}
@@ -74,9 +83,9 @@ public:
     auto res = context.getResults().getRes();
     std::cout << "append args" << args.toString() << std::endl;
     auto reply = server.append(args, res);
-    return reply.then([res = std::move(res)]() {
+    return reply.then([res]() {
       std::cout << "append res" << res.toString() << std::endl;
-    });
+    }).attach(std::move(context));
   }
 
   kj::Promise<void> command(CommandContext context) {
@@ -84,9 +93,9 @@ public:
     auto res = context.getResults().getRes();
     std::cout << "command args" << args.toString() << std::endl;
     auto reply = server.command(args, res);
-    return reply.then([res = std::move(res)]() {
+    return reply.then([res]() {
       std::cout << "command res" << res.toString() << std::endl;
-    });
+    }).attach(std::move(context));
   }
 
   kj::Promise<void> snapshot(SnapshotContext context) {
@@ -94,9 +103,9 @@ public:
     auto res = context.getResults().getRes();
     std::cout << "snapshot args" << args.toString() << std::endl;
     auto reply = server.snapshot(args, res);
-    return reply.then([res = std::move(res)]() {
+    return reply.then([res]() {
       std::cout << "snapshot res" << res.toString() << std::endl;
-    });
+    }).attach(std::move(context));
   }
 
   kj::Promise<void> vote(VoteContext context) {
@@ -104,9 +113,9 @@ public:
     auto res = context.getResults().getRes();
     std::cout << "vote args" << args.toString() << std::endl;
     auto reply = server.vote(args, res);
-    return reply.then([res = std::move(res)]() {
+    return reply.then([res]() {
       std::cout << "vote res" << res.toString() << std::endl;
-    });
+    }).attach(std::move(context));
   }
 
 private:
@@ -118,6 +127,7 @@ public:
   Impl(const Configuration &config, std::mt19937 &rng)
       : cluster(config.member_addrs),
         rpc(kj::heap<RaftServerAdapter>(server), get_bind_addr(config), 13579),
+        network(rpc.getIoProvider().getNetwork()),
         server(config, state, cluster, network, rng, rpc.getIoProvider()) {}
 
   Impl(const Impl &) = delete;
@@ -131,9 +141,8 @@ public:
 private:
   State state;
   Cluster cluster;
-  Network network;
-
   capnp::EzRpcServer rpc;
+  Network network;
   Server server;
 };
 

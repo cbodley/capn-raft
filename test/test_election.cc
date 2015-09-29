@@ -15,6 +15,7 @@
 #include "state.h"
 
 #include <kj/async-io.h>
+#include <capnp/message.h>
 #include <gtest/gtest.h>
 
 using namespace raft;
@@ -50,7 +51,8 @@ private:
   bool majority;
 };
 
-Network network;
+auto async = kj::setupAsyncIo();
+Network network(async.provider->getNetwork());
 
 } // anonymous namespace
 
@@ -59,7 +61,6 @@ Network network;
 TEST(Election, StartAsFollower) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   Server server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
@@ -68,7 +69,6 @@ TEST(Election, StartAsFollower) {
 TEST(Election, FollowerTimeout) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
@@ -79,7 +79,6 @@ TEST(Election, FollowerTimeout) {
 TEST(Election, CandidateTimeout) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.member_state = MemberState::Candidate;
@@ -91,7 +90,6 @@ TEST(Election, CandidateTimeout) {
 TEST(Election, LeaderTimeout) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.member_state = MemberState::Leader;
@@ -103,7 +101,6 @@ TEST(Election, LeaderTimeout) {
 TEST(Election, CandidateVoteSelf) {
   State state;
   MajorityCluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
@@ -114,7 +111,6 @@ TEST(Election, CandidateVoteSelf) {
 TEST(Election, CandidateVoteMajority) {
   State state;
   MajorityCluster cluster(false);
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
@@ -132,7 +128,6 @@ TEST(Election, TimeoutEvent) {
 
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   server.start_election_timer();
@@ -152,7 +147,6 @@ TEST(Election, TimeoutEvent) {
 TEST(Election, NewTermEndsElection) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(0, state.current_term);
@@ -170,7 +164,6 @@ TEST(Election, NewTermEndsElection) {
 TEST(Election, GrantEmptyLog) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   bool granted = server.request_vote(state.current_term, 0, 0, 0);
@@ -180,7 +173,6 @@ TEST(Election, GrantEmptyLog) {
 TEST(Election, GrantMatchingLog) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
@@ -195,7 +187,6 @@ TEST(Election, GrantMatchingLog) {
 TEST(Election, DenyIfOlderTerm) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.current_term = 2;
@@ -208,7 +199,6 @@ TEST(Election, DenyIfOlderTerm) {
 TEST(Election, DenyIfVotedForOther) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.voted = true;
@@ -222,7 +212,6 @@ TEST(Election, DenyIfVotedForOther) {
 TEST(Election, DenyIfLowerLogIndex) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
@@ -237,7 +226,6 @@ TEST(Election, DenyIfLowerLogIndex) {
 TEST(Election, DenyIfDifferentLogTerm) {
   State state;
   Cluster cluster;
-  auto async = kj::setupAsyncIo();
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;

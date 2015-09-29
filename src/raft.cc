@@ -17,6 +17,9 @@
 #include "raft.capnp.h"
 
 namespace std {
+ostream &operator<<(ostream &out, const kj::StringPtr &str) {
+  return out.write(str.begin(), str.size());
+}
 ostream &operator<<(ostream &out, const kj::StringTree &strings) {
   strings.visit([&out](auto str) { out.write(str.begin(), str.size()); });
   return out;
@@ -41,9 +44,14 @@ int main(int argc, const char **argv) {
   args.setSequence(1041);
   args.setPing();
 
-  auto promise = request.send();
-  auto response = promise.wait(client.getWaitScope());
-
-  std::cout << response.getRes().toString() << std::endl;
+  request.send()
+      .then(
+           [](auto response) {
+             std::cout << response.getRes().toString() << std::endl;
+           },
+           [](kj::Exception &&e) {
+             std::cerr << "request failed: " << e.getDescription() << std::endl;
+           })
+      .wait(client.getWaitScope());
   return 0;
 }

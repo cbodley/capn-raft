@@ -77,6 +77,9 @@ protected:
   const State &get_state() const { return state; }
 
 private:
+  uint32_t get_last_log_index() const;
+  term_t get_last_log_term() const;
+
   const Configuration &config;
   State &state;
   Cluster &cluster;

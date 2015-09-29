@@ -9,12 +9,21 @@
  * Foundation.  See file COPYING.
  */
 
+#include <iostream>
+
 #include <kj/async-io.h>
 #include <kj/debug.h>
 
 #include "cluster.h"
+#include "network.h"
 #include "server.h"
 #include "state.h"
+
+namespace std {
+ostream &operator<<(ostream &out, const kj::StringPtr &str) {
+  return out.write(str.begin(), str.size());
+}
+} // namespace std
 
 using namespace raft;
 using namespace proto;
@@ -84,6 +93,8 @@ bool Server::request_vote(term_t term, member_t candidate, uint32_t log_index,
 
 kj::Promise<void> Server::vote_reply(member_t member, term_t term,
                                      bool granted) {
+  std::cout << "vote reply from=" << member << " term=" << term
+            << " granted=" << granted << std::endl;
   if (update_term(term))
     return store_raft_state();
   if (granted)
@@ -129,14 +140,54 @@ kj::Promise<void> Server::election_timeout() {
 
 void Server::start_election() {
   // TODO: term update needs store_raft_state()
-  state.current_term++;
+  const auto term = ++state.current_term;
+  std::cout << "vote started term=" << term << std::endl;
 
-  state.election_term = state.current_term;
+  state.election_term = term;
   state.votes.clear();
   state.member_state = MemberState::Candidate;
 
   // vote myself
   add_vote(config.member_id);
+
+  // broadcast a vote request
+  std::map<member_t, addr_t> addrs;
+  cluster.get_addresses(addrs);
+
+  const struct {
+    term_t term;
+    member_t candidate;
+    log_index_t log_index;
+    term_t log_term;
+  } vote = {term, config.member_id, get_last_log_index(), get_last_log_term()};
+
+  for (auto &member : addrs) {
+    const auto member_id = member.first;
+    if (member_id == config.member_id)
+      continue;
+
+    const auto &addr = member.second;
+    auto connect = network.connect(addr);
+    auto send = connect.then([vote](auto client) {
+      auto request = client.voteRequest();
+      auto args = request.getArgs();
+      args.setTerm(vote.term);
+      args.setCandidate(vote.candidate);
+      args.setLastLogIndex(vote.log_index);
+      args.setLastLogTerm(vote.log_term);
+      // send, no pipelining
+      return request.send().then([](auto reply) { return reply; });
+    });
+    auto promise = send.then([this, member_id, term](auto reply) {
+      return vote_reply(member_id, term, reply.getRes().getVoteGranted());
+    }, network.error_handler(addr));
+
+    // insert or overwrite existing promise
+    auto reply = vote_replies.emplace(member_id, nullptr);
+    std::swap(reply.first->second, promise);
+
+    std::cout << "send vote request to " << member_id << std::endl;
+  }
 }
 
 void Server::start_election_timer() {

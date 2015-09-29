@@ -9,6 +9,7 @@ install(TARGETS raft_client DESTINATION bin)
 set(raft_src
 	cluster.cc
 	election.cc
+	network.cc
 	server.cc
 	)
 add_library(raft ${raft_src})

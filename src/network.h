@@ -11,31 +11,41 @@
 #pragma once
 
 #include <map>
-#include <mutex>
-
-#include <capnp/ez-rpc.h>
 
 #include <raft.h>
 
 #include "raft.capnp.h"
+
+namespace kj {
+class Network;
+template <class T> class Promise;
+} // namespace kj
 
 namespace raft {
 namespace server {
 
 class Network {
 public:
-  raft::proto::Raft::Client get_client(const addr_t &addr) {
-    std::lock_guard<std::mutex> lock(mutex);
-    auto &client =
-        member_clients.emplace(std::piecewise_construct,
-                               std::forward_as_tuple(addr),
-                               std::forward_as_tuple(addr)).first->second;
-    return client.getMain<raft::proto::Raft>();
+  Network(kj::Network &network);
+  ~Network();
+
+  kj::Promise<proto::Raft::Client> connect(const addr_t &addr);
+
+  auto error_handler(const addr_t &addr) {
+    return [this, addr](kj::Exception &&exception) -> kj::Promise<void> {
+      if (exception.getType() == kj::Exception::Type::DISCONNECTED)
+        disconnect(addr);
+      return kj::mv(exception);
+    };
   }
 
 private:
-  std::mutex mutex;
-  std::map<addr_t, capnp::EzRpcClient> member_clients;
+  void disconnect(const addr_t &addr);
+
+  kj::Network &network;
+
+  class Client;
+  std::map<addr_t, Client> clients;
 };
 
 } // namespace server
