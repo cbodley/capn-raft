@@ -39,13 +39,14 @@ const addr_t &get_bind_addr(const Configuration &config) {
 } // anonymous namespace
 
 Server::Server(const Configuration &config, State &state, Cluster &cluster,
-               Network &network, kj::AsyncIoProvider &async) noexcept
-    : config(config),
-      state(state),
-      cluster(cluster),
-      network(network),
-      async(async),
-      election_timer(nullptr) {}
+               Network &network, std::mt19937 &rng,
+               kj::AsyncIoProvider &async) noexcept : config(config),
+                                                      state(state),
+                                                      cluster(cluster),
+                                                      network(network),
+                                                      rng(rng),
+                                                      async(async),
+                                                      election_timer(nullptr) {}
 
 bool Server::update_term(term_t term) {
   if (state.current_term >= term)
@@ -114,10 +115,10 @@ private:
 
 class Raft::Impl {
 public:
-  Impl(const Configuration &config)
+  Impl(const Configuration &config, std::mt19937 &rng)
       : cluster(config.member_addrs),
         rpc(kj::heap<RaftServerAdapter>(server), get_bind_addr(config), 13579),
-        server(config, state, cluster, network, rpc.getIoProvider()) {}
+        server(config, state, cluster, network, rng, rpc.getIoProvider()) {}
 
   Impl(const Impl &) = delete;
   Impl &operator=(const Impl &) = delete;
@@ -139,8 +140,8 @@ private:
 // Raft
 Raft::Raft(std::nullptr_t) noexcept {}
 
-Raft::Raft(const Configuration &config)
-    : impl(std::make_unique<Impl>(config)) {}
+Raft::Raft(const Configuration &config, std::mt19937 &rng)
+    : impl(std::make_unique<Impl>(config, rng)) {}
 
 Raft::~Raft() noexcept = default;
 

@@ -13,6 +13,7 @@
 #include <chrono>
 #include <map>
 #include <memory>
+#include <random>
 #include <string>
 
 // "In Search of an Understandable Consensus Algorithm"
@@ -44,7 +45,7 @@ struct Configuration {
 class Raft {
 public:
   Raft(std::nullptr_t) noexcept;
-  Raft(const Configuration &config);
+  Raft(const Configuration &config, std::mt19937 &rng);
   ~Raft() noexcept;
 
   void run();

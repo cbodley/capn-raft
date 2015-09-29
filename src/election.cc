@@ -9,9 +9,8 @@
  * Foundation.  See file COPYING.
  */
 
-#include <iostream>
-
 #include <kj/async-io.h>
+#include <kj/debug.h>
 
 #include "cluster.h"
 #include "server.h"
@@ -45,7 +44,7 @@ kj::Promise<void> Server::vote(vote::Args::Reader args,
     need_store = true;
   }
 
-  auto previously_voted = state.voted;
+  const auto previously_voted = state.voted;
   auto voted = request_vote(args.getTerm(), args.getCandidate(),
                             args.getLastLogIndex(), args.getLastLogTerm());
   res.setVoteGranted(voted);
@@ -101,16 +100,36 @@ void Server::add_vote(member_t member) {
   if (cluster.is_majority(state.votes)) {
     state.member_state = MemberState::Leader;
     start_leader();
-    std::cout << "won election" << std::endl;
   }
 }
 
-void Server::start_election() {
-  if (state.member_state == MemberState::Leader)
-    return;
+namespace {
+kj::Duration get_election_timeout(const Configuration &config,
+                                  std::mt19937 &rng) {
+  auto delay_min = config.election_timeout_min.count() * kj::MILLISECONDS;
+  auto delay_max = config.election_timeout_max.count() * kj::MILLISECONDS;
+  std::uniform_int_distribution<> dist(delay_min / kj::MICROSECONDS,
+                                       delay_max / kj::MICROSECONDS);
+  return dist(rng) * kj::MICROSECONDS;
+}
+} // anonymous namespace
 
+kj::Promise<void> Server::election_timeout() {
+  KJ_ASSERT(state.member_state != MemberState::Leader,
+            "election timeout during leader state");
+
+  start_election();
+  if (state.member_state == MemberState::Leader)
+    return kj::READY_NOW;
+
+  auto delay = get_election_timeout(config, rng);
+  return async.getTimer().afterDelay(delay).then(
+      [this]() { return election_timeout(); });
+}
+
+void Server::start_election() {
+  // TODO: term update needs store_raft_state()
   state.current_term++;
-  std::cout << "starting election " << state.current_term << std::endl;
 
   state.election_term = state.current_term;
   state.votes.clear();
@@ -120,27 +139,10 @@ void Server::start_election() {
   add_vote(config.member_id);
 }
 
-kj::Promise<void> Server::election_timeout() {
-  std::cout << "election timeout" << std::endl;
-  start_election();
-  if (state.member_state == MemberState::Leader)
-    return kj::READY_NOW;
-  // TODO: randomize election timeout
-  auto delay = config.election_timeout_max.count() * kj::MILLISECONDS;
-  return async.getTimer().afterDelay(delay).then(
-      [this]() { return election_timeout(); });
-}
-
 void Server::start_election_timer() {
-  std::cout << "starting election timer" << std::endl;
-
-  // TODO: randomize election timeout
-  auto delay = config.election_timeout_max.count() * kj::MILLISECONDS;
+  auto delay = get_election_timeout(config, rng);
   election_timer = async.getTimer().afterDelay(delay).then(
       [this]() { return election_timeout(); });
 }
 
-void Server::stop_election() {
-  std::cout << "stopping election timer" << std::endl;
-  election_timer = nullptr;
-}
+void Server::stop_election() { election_timer = nullptr; }

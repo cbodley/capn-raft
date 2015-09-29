@@ -20,11 +20,15 @@ using namespace raft;
 using namespace server;
 
 int main(int argc, const char **argv) {
+  // seed a random generator with the random device
+  std::random_device dev;
+  std::mt19937 rng(dev());
+
   Configuration config;
   if (!parse_config(argc, argv, config))
     return 1;
 
-  Raft raft(config);
+  Raft raft(config, rng);
   raft.run();
   return 0;
 }

@@ -10,6 +10,8 @@
  */
 #pragma once
 
+#include <random>
+
 #include <kj/async.h>
 
 #include <raft.h>
@@ -32,7 +34,8 @@ class State;
 class Server {
 public:
   Server(const Configuration &config, State &state, Cluster &cluster,
-         Network &network, kj::AsyncIoProvider &async) noexcept;
+         Network &network, std::mt19937 &rng,
+         kj::AsyncIoProvider &async) noexcept;
 
   kj::Promise<void> append(proto::append::Args::Reader args,
                            proto::append::Res::Builder res) {
@@ -78,6 +81,7 @@ private:
   State &state;
   Cluster &cluster;
   Network &network;
+  std::mt19937 &rng;
   kj::AsyncIoProvider &async;
 
   kj::Promise<void> election_timer;

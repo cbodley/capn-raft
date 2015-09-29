@@ -24,6 +24,9 @@ namespace {
 
 const Configuration config = {};
 
+std::random_device dev;
+std::mt19937 rng(dev());
+
 class TestServer : public Server {
 public:
   using Server::Server;
@@ -57,7 +60,7 @@ TEST(Election, StartAsFollower) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  Server server(config, state, cluster, network, *async.provider);
+  Server server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
 }
@@ -66,7 +69,7 @@ TEST(Election, FollowerTimeout) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
   server.election_timeout();
@@ -77,7 +80,7 @@ TEST(Election, CandidateTimeout) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.member_state = MemberState::Candidate;
   ASSERT_EQ(MemberState::Candidate, state.member_state);
@@ -89,11 +92,11 @@ TEST(Election, LeaderTimeout) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.member_state = MemberState::Leader;
   ASSERT_EQ(MemberState::Leader, state.member_state);
-  server.election_timeout();
+  EXPECT_THROW(server.election_timeout(), kj::Exception);
   ASSERT_EQ(MemberState::Leader, state.member_state);
 }
 
@@ -101,7 +104,7 @@ TEST(Election, CandidateVoteSelf) {
   State state;
   MajorityCluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
   server.election_timeout(); // majority is true, so self vote will win
@@ -112,7 +115,7 @@ TEST(Election, CandidateVoteMajority) {
   State state;
   MajorityCluster cluster(false);
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
   server.election_timeout(); // majority is false, so self vote doesn't win
@@ -130,7 +133,7 @@ TEST(Election, TimeoutEvent) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   server.start_election_timer();
 
@@ -150,7 +153,7 @@ TEST(Election, NewTermEndsElection) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   ASSERT_EQ(0, state.current_term);
   ASSERT_EQ(MemberState::Follower, state.member_state);
@@ -168,7 +171,7 @@ TEST(Election, GrantEmptyLog) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   bool granted = server.request_vote(state.current_term, 0, 0, 0);
   ASSERT_TRUE(granted);
@@ -178,7 +181,7 @@ TEST(Election, GrantMatchingLog) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
   proto::log::Entry::Builder entry = message.initRoot<proto::log::Entry>();
@@ -193,7 +196,7 @@ TEST(Election, DenyIfOlderTerm) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.current_term = 2;
 
@@ -206,7 +209,7 @@ TEST(Election, DenyIfVotedForOther) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   state.voted = true;
   state.voted_for = 0;
@@ -220,7 +223,7 @@ TEST(Election, DenyIfLowerLogIndex) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
   proto::log::Entry::Builder entry = message.initRoot<proto::log::Entry>();
@@ -235,7 +238,7 @@ TEST(Election, DenyIfDifferentLogTerm) {
   State state;
   Cluster cluster;
   auto async = kj::setupAsyncIo();
-  TestServer server(config, state, cluster, network, *async.provider);
+  TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
   proto::log::Entry::Builder entry = message.initRoot<proto::log::Entry>();
