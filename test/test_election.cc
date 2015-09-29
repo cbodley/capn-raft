@@ -176,8 +176,8 @@ TEST(Election, GrantMatchingLog) {
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
-  proto::log::Entry::Builder entry = message.initRoot<proto::log::Entry>();
-  entry.setTerm(state.current_term);
+  auto entry = message.getOrphanage().newOrphan<proto::log::Entry>();
+  entry.get().setTerm(state.current_term);
   state.log.emplace_back(std::move(entry));
 
   bool granted = server.request_vote(state.current_term, 0, 1, 0);
@@ -215,8 +215,8 @@ TEST(Election, DenyIfLowerLogIndex) {
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
-  proto::log::Entry::Builder entry = message.initRoot<proto::log::Entry>();
-  entry.setTerm(state.current_term);
+  auto entry = message.getOrphanage().newOrphan<proto::log::Entry>();
+  entry.get().setTerm(state.current_term);
   state.log.emplace_back(std::move(entry));
 
   bool granted = server.request_vote(state.current_term, 0, 0, 0);
@@ -229,8 +229,8 @@ TEST(Election, DenyIfDifferentLogTerm) {
   TestServer server(config, state, cluster, network, rng, *async.provider);
 
   capnp::MallocMessageBuilder message;
-  proto::log::Entry::Builder entry = message.initRoot<proto::log::Entry>();
-  entry.setTerm(state.current_term);
+  auto entry = message.getOrphanage().newOrphan<proto::log::Entry>();
+  entry.get().setTerm(state.current_term);
   state.log.emplace_back(std::move(entry));
 
   bool granted = server.request_vote(state.current_term, 0, 1, 1);

@@ -24,6 +24,8 @@ namespace server {
 using term_t = uint32_t;
 using log_index_t = uint32_t;
 
+using log_entry_t = capnp::Orphan<proto::log::Entry>;
+
 enum class MemberState {
   Follower,
   Candidate,
@@ -41,7 +43,7 @@ struct State {
   term_t current_term = 0;
   bool voted = false;
   member_t voted_for;
-  std::vector<proto::log::Entry::Reader> log;
+  std::vector<log_entry_t> log;
 
   // volatile state
   MemberState member_state = MemberState::Follower;

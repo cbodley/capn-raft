@@ -79,7 +79,7 @@ bool Server::request_vote(term_t term, member_t candidate, uint32_t log_index,
     return false;
   }
   if (log_index > 0 && log_index == state.log.size() &&
-      log_term != state.log.back().getTerm()) {
+      log_term != state.log.back().get().getTerm()) {
     // last log term doesn't match
     return false;
   }

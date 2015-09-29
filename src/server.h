@@ -13,6 +13,7 @@
 #include <random>
 
 #include <kj/async.h>
+#include <capnp/message.h>
 
 #include <raft.h>
 
@@ -86,6 +87,8 @@ private:
   Network &network;
   std::mt19937 &rng;
   kj::AsyncIoProvider &async;
+
+  capnp::MallocMessageBuilder message; //< allocator for log::Entry orphans
 
   kj::Promise<void> election_timer;
   std::map<member_t, kj::Promise<void>> vote_replies;
