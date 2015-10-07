@@ -146,7 +146,7 @@ private:
   State state;
   Cluster cluster;
   capnp::EzRpcServer rpc;
-  Network network;
+  RpcNetwork network;
   Server server;
 };
 

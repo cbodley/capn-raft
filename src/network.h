@@ -26,10 +26,10 @@ namespace server {
 
 class Network {
 public:
-  Network(kj::Network &network);
-  ~Network();
+  virtual ~Network() = default;
 
-  kj::Promise<proto::Raft::Client> connect(const addr_t &addr);
+  virtual kj::Promise<proto::Raft::Client> connect(const addr_t &addr) = 0;
+  virtual void disconnect(const addr_t &addr) = 0;
 
   auto error_handler(const addr_t &addr) {
     return [this, addr](kj::Exception &&exception) -> kj::Promise<void> {
@@ -38,10 +38,30 @@ public:
       return kj::mv(exception);
     };
   }
+};
+
+class DirectNetwork final : public Network {
+public:
+  void add_server(addr_t &addr, kj::Own<proto::Raft::Server> &&server);
+
+  kj::Promise<proto::Raft::Client> connect(const addr_t &addr) override;
+  void disconnect(const addr_t &addr) override {}
 
 private:
-  void disconnect(const addr_t &addr);
+  // proto::Raft::Client declares a non-const copy constructor, so we can't
+  // use it directly in the std::map. wrap it in a pointer instead
+  std::map<addr_t, kj::Own<proto::Raft::Client>> clients;
+};
 
+class RpcNetwork final : public Network {
+public:
+  RpcNetwork(kj::Network &network);
+  ~RpcNetwork();
+
+  kj::Promise<proto::Raft::Client> connect(const addr_t &addr) override;
+  void disconnect(const addr_t &addr) override;
+
+private:
   kj::Network &network;
 
   class Client;

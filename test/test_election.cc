@@ -52,7 +52,7 @@ private:
 };
 
 auto async = kj::setupAsyncIo();
-Network network(async.provider->getNetwork());
+RpcNetwork network(async.provider->getNetwork());
 
 capnp::MallocMessageBuilder message;
 LogFactory log_factory(message.getOrphanage());

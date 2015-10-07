@@ -10,6 +10,7 @@
  */
 
 #include <kj/async-io.h>
+#include <kj/debug.h>
 #include <capnp/ez-rpc.h>
 #include <capnp/rpc-twoparty.h>
 
@@ -18,7 +19,18 @@
 using namespace raft;
 using namespace server;
 
-class Network::Client {
+void DirectNetwork::add_server(addr_t &addr,
+                               kj::Own<proto::Raft::Server> &&server) {
+  clients.emplace(addr, kj::heap<proto::Raft::Client>(kj::mv(server)));
+}
+
+kj::Promise<proto::Raft::Client> DirectNetwork::connect(const addr_t &addr) {
+  auto client = clients.find(addr);
+  KJ_REQUIRE(client != clients.end(), "no client with the given address");
+  return *client->second.get();
+}
+
+class RpcNetwork::Client {
 private:
   class Connection {
   public:
@@ -85,16 +97,16 @@ public:
   }
 };
 
-Network::Network(kj::Network &network) : network(network) {}
+RpcNetwork::RpcNetwork(kj::Network &network) : network(network) {}
 
-Network::~Network() = default;
+RpcNetwork::~RpcNetwork() = default;
 
-kj::Promise<proto::Raft::Client> Network::connect(const addr_t &addr) {
+kj::Promise<proto::Raft::Client> RpcNetwork::connect(const addr_t &addr) {
   auto &client = clients[addr];
   return client.connect(addr, network);
 }
 
-void Network::disconnect(const addr_t &addr) {
+void RpcNetwork::disconnect(const addr_t &addr) {
   auto client = clients.find(addr);
   if (client != clients.end())
     client->second.disconnect();
