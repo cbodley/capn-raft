@@ -18,3 +18,8 @@ add_executable(test_election EXCLUDE_FROM_ALL test_election.cc)
 target_link_libraries(test_election raft ${TEST_LIBRARIES})
 add_test(Election test_election)
 add_dependencies(check test_election)
+
+add_executable(test_log EXCLUDE_FROM_ALL test_log.cc)
+target_link_libraries(test_log raft ${TEST_LIBRARIES})
+add_test(Log test_log)
+add_dependencies(check test_log)
