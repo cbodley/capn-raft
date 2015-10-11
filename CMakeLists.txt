@@ -1,13 +1,13 @@
 project(raft)
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 # add WITH_SANITIZERS option for -fsanitize=
 include(Sanitizers)
 
-# require at least c++11
-include(UseCxxStandard)
-use_cxx_standard(REQUIRED VERSIONS 14 11)
+# require c++14 without extensions
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 find_package(CapnProto REQUIRED)
