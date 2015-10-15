@@ -13,13 +13,15 @@
 #include <random>
 
 #include <kj/async.h>
-#include <capnp/message.h>
 
 #include <raft.h>
 
 #include "log.h"
 #include "raft.capnp.h"
 
+namespace capnp {
+class MessageBuilder;
+} // namespace capnp
 namespace kj {
 class AsyncIoProvider;
 } // namespace kj
@@ -37,7 +39,7 @@ struct Follower;
 class Server {
 public:
   Server(const Configuration &config, State &state, Cluster &cluster,
-         Network &network, std::mt19937 &rng,
+         Network &network, std::mt19937 &rng, capnp::MessageBuilder &messages,
          kj::AsyncIoProvider &async) noexcept;
 
   kj::Promise<void> append(proto::append::Args::Reader args,
@@ -96,8 +98,8 @@ private:
   std::mt19937 &rng;
   kj::AsyncIoProvider &async;
 
-  capnp::MallocMessageBuilder message; //< allocator for log factory
-  LogFactory log_factory;              //< factory for log entries
+  capnp::MessageBuilder &messages; //< allocator for log factory
+  LogFactory log_factory;          //< factory for log entries
 
   kj::Promise<void> election_timer;
   std::map<member_t, kj::Promise<void>> vote_replies;

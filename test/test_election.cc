@@ -54,8 +54,8 @@ private:
 auto async = kj::setupAsyncIo();
 RpcNetwork network(async.provider->getNetwork());
 
-capnp::MallocMessageBuilder message;
-LogFactory log_factory(message.getOrphanage());
+capnp::MallocMessageBuilder messages;
+LogFactory log_factory(messages.getOrphanage());
 } // anonymous namespace
 
 // test member state transitions
@@ -63,7 +63,8 @@ LogFactory log_factory(message.getOrphanage());
 TEST(Election, StartAsFollower) {
   State state;
   Cluster cluster;
-  Server server(config, state, cluster, network, rng, *async.provider);
+  Server server(config, state, cluster, network, rng, messages,
+                *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
 }
@@ -71,7 +72,8 @@ TEST(Election, StartAsFollower) {
 TEST(Election, FollowerTimeout) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
   server.election_timeout();
@@ -81,7 +83,8 @@ TEST(Election, FollowerTimeout) {
 TEST(Election, CandidateTimeout) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   state.member_state = MemberState::Candidate;
   ASSERT_EQ(MemberState::Candidate, state.member_state);
@@ -92,7 +95,8 @@ TEST(Election, CandidateTimeout) {
 TEST(Election, LeaderTimeout) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   state.member_state = MemberState::Leader;
   ASSERT_EQ(MemberState::Leader, state.member_state);
@@ -103,7 +107,8 @@ TEST(Election, LeaderTimeout) {
 TEST(Election, CandidateVoteSelf) {
   State state;
   MajorityCluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
   server.election_timeout(); // majority is true, so self vote will win
@@ -113,7 +118,8 @@ TEST(Election, CandidateVoteSelf) {
 TEST(Election, CandidateVoteMajority) {
   State state;
   MajorityCluster cluster(false);
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   ASSERT_EQ(MemberState::Follower, state.member_state);
   server.election_timeout(); // majority is false, so self vote doesn't win
@@ -130,7 +136,8 @@ TEST(Election, TimeoutEvent) {
 
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   server.start_election_timer();
 
@@ -149,7 +156,8 @@ TEST(Election, TimeoutEvent) {
 TEST(Election, NewTermEndsElection) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   ASSERT_EQ(0, state.current_term);
   ASSERT_EQ(MemberState::Follower, state.member_state);
@@ -166,7 +174,8 @@ TEST(Election, NewTermEndsElection) {
 TEST(Election, GrantEmptyLog) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   bool granted = server.request_vote(state.current_term, 0, 0, 0);
   ASSERT_TRUE(granted);
@@ -175,7 +184,8 @@ TEST(Election, GrantEmptyLog) {
 TEST(Election, GrantMatchingLog) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
 
@@ -186,7 +196,8 @@ TEST(Election, GrantMatchingLog) {
 TEST(Election, DenyIfOlderTerm) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   state.current_term = 2;
 
@@ -198,7 +209,8 @@ TEST(Election, DenyIfOlderTerm) {
 TEST(Election, DenyIfVotedForOther) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   state.voted = true;
   state.voted_for = 0;
@@ -211,7 +223,8 @@ TEST(Election, DenyIfVotedForOther) {
 TEST(Election, DenyIfLowerLogIndex) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
 
@@ -222,7 +235,8 @@ TEST(Election, DenyIfLowerLogIndex) {
 TEST(Election, DenyIfDifferentLogTerm) {
   State state;
   Cluster cluster;
-  TestServer server(config, state, cluster, network, rng, *async.provider);
+  TestServer server(config, state, cluster, network, rng, messages,
+                    *async.provider);
 
   state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
 

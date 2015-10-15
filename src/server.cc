@@ -41,14 +41,16 @@ const addr_t &get_bind_addr(const Configuration &config) {
 
 Server::Server(const Configuration &config, State &state, Cluster &cluster,
                Network &network, std::mt19937 &rng,
+               capnp::MessageBuilder &messages,
                kj::AsyncIoProvider &async) noexcept
     : config(config),
       state(state),
       cluster(cluster),
       network(network),
       rng(rng),
+      messages(messages),
       async(async),
-      log_factory(message.getOrphanage()),
+      log_factory(messages.getOrphanage()),
       election_timer(nullptr),
       heartbeat_timer(nullptr) {}
 
@@ -132,7 +134,8 @@ public:
       : cluster(config.member_addrs),
         rpc(kj::heap<RaftServerAdapter>(server), get_bind_addr(config), 13579),
         network(rpc.getIoProvider().getNetwork()),
-        server(config, state, cluster, network, rng, rpc.getIoProvider()) {}
+        server(config, state, cluster, network, rng, messages,
+               rpc.getIoProvider()) {}
 
   Impl(const Impl &) = delete;
   Impl &operator=(const Impl &) = delete;
@@ -143,6 +146,7 @@ public:
   }
 
 private:
+  capnp::MallocMessageBuilder messages;
   State state;
   Cluster cluster;
   capnp::EzRpcServer rpc;
