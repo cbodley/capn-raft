@@ -187,7 +187,7 @@ TEST(Election, GrantMatchingLog) {
   TestServer server(config, state, cluster, network, rng, messages,
                     *async.provider);
 
-  state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
+  state.log.emplace_back(log_factory.create(state.current_term, 0, "", 0));
 
   bool granted = server.request_vote(state.current_term, 0, 1, 0);
   ASSERT_TRUE(granted);
@@ -226,7 +226,7 @@ TEST(Election, DenyIfLowerLogIndex) {
   TestServer server(config, state, cluster, network, rng, messages,
                     *async.provider);
 
-  state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
+  state.log.emplace_back(log_factory.create(state.current_term, 0, "", 0));
 
   bool granted = server.request_vote(state.current_term, 0, 0, 0);
   ASSERT_FALSE(granted);
@@ -238,7 +238,7 @@ TEST(Election, DenyIfDifferentLogTerm) {
   TestServer server(config, state, cluster, network, rng, messages,
                     *async.provider);
 
-  state.log.emplace_back(log_factory.create(state.current_term, 0, {}));
+  state.log.emplace_back(log_factory.create(state.current_term, 0, "", 0));
 
   bool granted = server.request_vote(state.current_term, 0, 1, 1);
   ASSERT_FALSE(granted);

@@ -42,7 +42,7 @@ public:
 
 class DirectNetwork final : public Network {
 public:
-  void add_server(addr_t &addr, kj::Own<proto::Raft::Server> &&server);
+  void add_server(const addr_t &addr, kj::Own<proto::Raft::Server> &&server);
 
   kj::Promise<proto::Raft::Client> connect(const addr_t &addr) override;
   void disconnect(const addr_t &addr) override {}

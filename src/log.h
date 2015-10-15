@@ -31,14 +31,16 @@ using log_entry_ptr = std::shared_ptr<log_entry_t>;
 
 class LogFactory {
 public:
-  LogFactory(capnp::Orphanage &&orphanage) : orphanage(kj::mv(orphanage)) {}
+  LogFactory(capnp::Orphanage &&orphanage) noexcept
+      : orphanage(kj::mv(orphanage)) {}
 
-  log_entry_ptr create(term_t term, command_t command,
-                       kj::Array<kj::byte> &&data) {
+  template <class... Args>
+  log_entry_ptr create(term_t term, command_t command, Args &&... args) {
+    auto data = kj::heapArray(kj::fwd<Args>(args)...);
     auto entry = orphanage.newOrphan<proto::log::Entry>();
     entry.get().setTerm(term);
     entry.get().setCommand(command);
-    entry.get().setData(kj::mv(data));
+    entry.get().setData(data.asBytes());
     return std::make_shared<log_entry_t>(kj::mv(entry));
   }
 

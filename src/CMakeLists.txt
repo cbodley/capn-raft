@@ -18,7 +18,7 @@ target_link_libraries(raft raft_proto)
 install(TARGETS raft DESTINATION lib)
 
 add_library(raft_config config.cc)
-target_link_libraries(raft_config ${Boost_LIBRARIES})
+target_link_libraries(raft_config ${Boost_PROGRAM_OPTIONS_LIBRARY})
 
 add_executable(raftd raftd.cc)
 target_link_libraries(raftd raft_config raft)

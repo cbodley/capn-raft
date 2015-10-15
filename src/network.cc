@@ -19,7 +19,7 @@
 using namespace raft;
 using namespace server;
 
-void DirectNetwork::add_server(addr_t &addr,
+void DirectNetwork::add_server(const addr_t &addr,
                                kj::Own<proto::Raft::Server> &&server) {
   clients.emplace(addr, kj::heap<proto::Raft::Client>(kj::mv(server)));
 }
