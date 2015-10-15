@@ -80,53 +80,49 @@ term_t Server::get_last_log_term() const {
   return state.log.back()->get().getTerm();
 }
 
-class RaftServerAdapter : public proto::Raft::Server {
-public:
-  RaftServerAdapter(server::Server &server) : server(server) {}
+kj::Promise<void> RaftServerAdapter::append(AppendContext context) {
+  auto args = context.getParams().getArgs();
+  auto res = context.getResults().getRes();
+  std::cout << "append args" << args.toString() << std::endl;
+  auto reply = server.append(args, res);
+  return reply.then([res]() {
+                std::cout << "append res" << res.toString() << std::endl;
+              })
+      .attach(std::move(context));
+}
 
-  kj::Promise<void> append(AppendContext context) {
-    auto args = context.getParams().getArgs();
-    auto res = context.getResults().getRes();
-    std::cout << "append args" << args.toString() << std::endl;
-    auto reply = server.append(args, res);
-    return reply.then([res]() {
-      std::cout << "append res" << res.toString() << std::endl;
-    }).attach(std::move(context));
-  }
+kj::Promise<void> RaftServerAdapter::command(CommandContext context) {
+  auto args = context.getParams().getArgs();
+  auto res = context.getResults().getRes();
+  std::cout << "command args" << args.toString() << std::endl;
+  auto reply = server.command(args, res);
+  return reply.then([res]() {
+                std::cout << "command res" << res.toString() << std::endl;
+              })
+      .attach(std::move(context));
+}
 
-  kj::Promise<void> command(CommandContext context) {
-    auto args = context.getParams().getArgs();
-    auto res = context.getResults().getRes();
-    std::cout << "command args" << args.toString() << std::endl;
-    auto reply = server.command(args, res);
-    return reply.then([res]() {
-      std::cout << "command res" << res.toString() << std::endl;
-    }).attach(std::move(context));
-  }
+kj::Promise<void> RaftServerAdapter::snapshot(SnapshotContext context) {
+  auto args = context.getParams().getArgs();
+  auto res = context.getResults().getRes();
+  std::cout << "snapshot args" << args.toString() << std::endl;
+  auto reply = server.snapshot(args, res);
+  return reply.then([res]() {
+                std::cout << "snapshot res" << res.toString() << std::endl;
+              })
+      .attach(std::move(context));
+}
 
-  kj::Promise<void> snapshot(SnapshotContext context) {
-    auto args = context.getParams().getArgs();
-    auto res = context.getResults().getRes();
-    std::cout << "snapshot args" << args.toString() << std::endl;
-    auto reply = server.snapshot(args, res);
-    return reply.then([res]() {
-      std::cout << "snapshot res" << res.toString() << std::endl;
-    }).attach(std::move(context));
-  }
-
-  kj::Promise<void> vote(VoteContext context) {
-    auto args = context.getParams().getArgs();
-    auto res = context.getResults().getRes();
-    std::cout << "vote args" << args.toString() << std::endl;
-    auto reply = server.vote(args, res);
-    return reply.then([res]() {
-      std::cout << "vote res" << res.toString() << std::endl;
-    }).attach(std::move(context));
-  }
-
-private:
-  server::Server &server;
-};
+kj::Promise<void> RaftServerAdapter::vote(VoteContext context) {
+  auto args = context.getParams().getArgs();
+  auto res = context.getResults().getRes();
+  std::cout << "vote args" << args.toString() << std::endl;
+  auto reply = server.vote(args, res);
+  return reply.then([res]() {
+                std::cout << "vote res" << res.toString() << std::endl;
+              })
+      .attach(std::move(context));
+}
 
 class Raft::Impl {
 public:

@@ -107,5 +107,18 @@ private:
   kj::Promise<void> heartbeat_timer;
 };
 
+class RaftServerAdapter : public proto::Raft::Server {
+public:
+  RaftServerAdapter(server::Server &server) : server(server) {}
+
+  kj::Promise<void> append(AppendContext context) override;
+  kj::Promise<void> command(CommandContext context) override;
+  kj::Promise<void> snapshot(SnapshotContext context) override;
+  kj::Promise<void> vote(VoteContext context) override;
+
+private:
+  server::Server &server;
+};
+
 } // namespace server
 } // namespace raft
